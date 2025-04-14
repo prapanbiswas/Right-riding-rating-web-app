@@ -248,6 +248,78 @@
             margin: 20px 0;
         }
 
+        .permission-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .permission-content {
+            background-color: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            animation: modalIn 0.3s ease forwards;
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .permission-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
+        .permission-message {
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .permission-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .permission-allow {
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .permission-deny {
+            background-color: #e0e0e0;
+            color: #666;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .permission-allow:hover, .permission-deny:hover {
+            transform: translateY(-2px);
+        }
+
         footer {
             text-align: center;
             margin-top: 50px;
@@ -298,7 +370,7 @@
     <div class="container">
         <div class="location-container">
             <button id="getLocation" class="location-btn">
-                <span id="locationButtonText">Get My Location</span>
+                <span id="locationButtonText">Update Location</span>
             </button>
             <div class="location-display" id="locationDisplay"></div>
         </div>
@@ -328,6 +400,20 @@
         </footer>
     </div>
 
+    <!-- Permission Dialog -->
+    <div class="permission-dialog" id="permissionDialog">
+        <div class="permission-content">
+            <div class="permission-title">Location Access</div>
+            <div class="permission-message">
+                This app needs your location to show you the best bike riding times in your area. Would you like to share your location?
+            </div>
+            <div class="permission-buttons">
+                <button class="permission-allow" id="allowLocation">Allow</button>
+                <button class="permission-deny" id="denyLocation">Not Now</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // API key
         const API_KEY = 'ebdde239526f4887af1201848251404';
@@ -345,12 +431,28 @@
         const hourlyTitle = document.getElementById('hourlyTitle');
         const hourlyGrid = document.getElementById('hourlyGrid');
         const content = document.getElementById('content');
+        const permissionDialog = document.getElementById('permissionDialog');
+        const allowLocationBtn = document.getElementById('allowLocation');
+        const denyLocationBtn = document.getElementById('denyLocation');
 
         // Event listeners
-        getLocationBtn.addEventListener('click', requestLocation);
+        getLocationBtn.addEventListener('click', showPermissionDialog);
+        allowLocationBtn.addEventListener('click', requestLocation);
+        denyLocationBtn.addEventListener('click', handleLocationDenied);
+
+        // Show permission dialog
+        function showPermissionDialog() {
+            permissionDialog.style.display = 'flex';
+        }
+
+        // Hide permission dialog
+        function hidePermissionDialog() {
+            permissionDialog.style.display = 'none';
+        }
 
         // Request location permission
         function requestLocation() {
+            hidePermissionDialog();
             locationButtonText.textContent = "Getting location...";
             
             if (navigator.geolocation) {
@@ -361,8 +463,15 @@
                 );
             } else {
                 showError("Geolocation is not supported by your browser");
-                locationButtonText.textContent = "Get My Location";
+                locationButtonText.textContent = "Update Location";
             }
+        }
+
+        // Handle location permission denied
+        function handleLocationDenied() {
+            hidePermissionDialog();
+            showError("Location access is required to show weather in your area");
+            locationButtonText.textContent = "Update Location";
         }
 
         // Success callback for geolocation
@@ -370,7 +479,7 @@
             const latitude = position.coords.latitude;
             const longitude = position.coords.longitude;
             
-            locationButtonText.textContent = "Location Updated";
+            locationButtonText.textContent = "Update Location";
             fetchWeatherForecast(latitude, longitude);
         }
 
@@ -392,7 +501,7 @@
                     break;
             }
             showError(message);
-            locationButtonText.textContent = "Get My Location";
+            locationButtonText.textContent = "Update Location";
         }
 
         // Fetch weather forecast data
@@ -544,83 +653,4 @@
 
         // Format hour
         function formatHour(timeStr) {
-            const hour = parseInt(timeStr.split(' ')[1].split(':')[0]);
-            const suffix = hour >= 12 ? 'PM' : 'AM';
-            const displayHour = hour % 12 || 12;
-            return `${displayHour} ${suffix}`;
-        }
-
-        // Render daily forecast
-        function renderDailyForecast(data) {
-            daysContainer.innerHTML = '';
-            
-            data.forecast.forecastday.forEach((day, index) => {
-                const rating = calculateBikeRating({
-                    temp_c: day.day.avgtemp_c,
-                    precip_mm: day.day.totalprecip_mm,
-                    wind_kph: day.day.maxwind_kph,
-                    vis_km: day.day.avgvis_km,
-                    uv: day.day.uv
-                });
-                
-                const ratingClass = getRatingClass(rating);
-                const dayName = index === 0 ? 'Today' : getDayOfWeek(day.date);
-                
-                const dayCard = document.createElement('div');
-                dayCard.className = `day-card ${index === 0 ? 'active' : ''}`;
-                dayCard.setAttribute('data-date', day.date);
-                dayCard.innerHTML = `
-                    <div class="day-name">${dayName}</div>
-                    <div class="day-date">${formatDate(day.date)}</div>
-                    <img class="weather-icon" src="${day.day.condition.icon}" alt="${day.day.condition.text}">
-                    <div class="rating ${ratingClass}">${rating}</div>
-                `;
-                
-                dayCard.addEventListener('click', () => {
-                    // Update active state
-                    document.querySelectorAll('.day-card').forEach(card => {
-                        card.classList.remove('active');
-                    });
-                    dayCard.classList.add('active');
-                    
-                    // Render hourly forecast for selected day
-                    renderHourlyForecast(day);
-                });
-                
-                daysContainer.appendChild(dayCard);
-            });
-            
-            // Show the forecast container
-            forecastContainer.style.display = 'block';
-            
-            // Show hourly forecast for today by default
-            renderHourlyForecast(data.forecast.forecastday[0]);
-        }
-
-        // Render hourly forecast for selected day
-        function renderHourlyForecast(dayData) {
-            hourlyGrid.innerHTML = '';
-            hourlyTitle.textContent = `Hourly Forecast for ${formatDate(dayData.date)}`;
-            
-            // Get actual hours remaining if today, otherwise show all hours
-            const now = new Date();
-            const today = now.toISOString().split('T')[0];
-            
-            // Filter hours to show only future hours if it's today
-            let hoursToShow = dayData.hour;
-            if (dayData.date === today) {
-                const currentHour = now.getHours();
-                hoursToShow = dayData.hour.filter(hour => {
-                    const hourNum = parseInt(hour.time.split(' ')[1].split(':')[0]);
-                    return hourNum >= currentHour;
-                });
-            }
-
-            // If no hours remaining today, show message
-            if (hoursToShow.length === 0) {
-                const noHoursMessage = document.createElement('div');
-                noHoursMessage.className = 'error-message';
-                noHoursMessage.textContent = 'No more hours remaining today';
-                hourlyGrid.appendChild(noHoursMessage);
-            } else {
-      
+            const hour = parseInt(timeSt

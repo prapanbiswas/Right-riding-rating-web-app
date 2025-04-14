@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bike Weather Rating</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --secondary: #2ecc71;
+            --background: #f9f9f9;
+            --text: #333;
+            --card: #fff;
+            --shadow: rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background);
+            color: var(--text);
+            transition: all 0.3s ease;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 4px 12px var(--shadow);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            letter-spacing: 1px;
+        }
+
+        .subtitle {
+            margin-top: 10px;
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .location-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 20px 0;
+            font-size: 1.2rem;
+        }
+
+        .location-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .location-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(52, 152, 219, 0.4);
+        }
+
+        .location-display {
+            margin-left: 15px;
+            font-weight: 500;
+        }
+
+        .forecast-container {
+            display: flex;
+            overflow-x: auto;
+            padding: 20px 0;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .day-card {
+            min-width: 140px;
+            background-color: var(--card);
+            border-radius: 15px;
+            padding: 15px;
+            margin-right: 15px;
+            box-shadow: 0 4px 12px var(--shadow);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .day-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px var(--shadow);
+        }
+
+        .day-card.active {
+            border: 2px solid var(--primary);
+            transform: translateY(-5px);
+        }
+
+        .day-name {
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .day-date {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .weather-icon {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto;
+        }
+
+        .rating {
+            margin-top: 15px;
+            font-size: 1.8rem;
+            font-weight: 700;
+            position: relative;
+            display: inline-block;
+        }
+
+        .rating::after {
+            content: '/100';
+            font-size: 1rem;
+            opacity: 0.7;
+            vertical-align: super;
+            margin-left: 2px;
+        }
+
+        .hourly-container {
+            margin-top: 30px;
+            display: none;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hourly-title {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            text-align: center;
+        }
+
+        .hourly-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .hourly-card {
+            background-color: var(--card);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 10px var(--shadow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: slideIn 0.3s ease forwards;
+            transition: all 0.3s ease;
+        }
+
+        .hourly-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 14px var(--shadow);
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .hour {
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .hour-weather {
+            font-size: 0.9rem;
+            margin: 5px 0;
+        }
+
+        .hour-rating {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 10px;
+            position: relative;
+        }
+
+        .hour-rating::after {
+            content: '/100';
+            font-size: 0.8rem;
+            opacity: 0.7;
+            vertical-align: super;
+            margin-left: 2px;
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(52, 152, 219, 0.2);
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            color: #e74c3c;
+            text-align: center;
+            padding: 20px;
+            background-color: rgba(231, 76, 60, 0.1);
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: #777;
+            font-size: 0.9rem;
+        }
+
+        /* Rating color classes */
+        .excellent {
+            color: #27ae60;
+        }
+
+        .good {
+            color: #2ecc71;
+        }
+
+        .moderate {
+            color: #f39c12;
+        }
+
+        .poor {
+            color: #e67e22;
+        }
+
+        .bad {
+            color: #e74c3c;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .hourly-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Bike Weather Rating</h1>
+        <div class="subtitle">Find the perfect time for your ride</div>
+    </header>
+
+    <div class="container">
+        <div class="location-container">
+            <button id="getLocation" class="location-btn">
+                <span id="locationButtonText">Get My Location</span>
+            </button>
+            <div class="location-display" id="locationDisplay"></div>
+        </div>
+
+        <div id="content">
+            <div class="loading" id="loadingIndicator">
+                <div class="spinner"></div>
+                <p>Looking up the sky for you...</p>
+            </div>
+        </div>
+
+        <div id="forecastContainer" style="display: none;">
+            <div class="forecast-container" id="daysContainer">
+                <!-- Daily forecast cards will be inserted here -->
+            </div>
+
+            <div class="hourly-container" id="hourlyContainer">
+                <h2 class="hourly-title" id="hourlyTitle">Hourly Forecast</h2>
+                <div class="hourly-grid" id="hourlyGrid">
+                    <!-- Hourly forecast cards will be inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Weather data provided by WeatherAPI.com</p>
+        </footer>
+    </div>
+
+    <script>
+        // API key
+        const API_KEY = 'ebdde239526f4887af1201848251404';
+        let currentLocation = '';
+        let forecastData = null;
+
+        // DOM elements
+        const getLocationBtn = document.getElementById('getLocation');
+        const locationButtonText = document.getElementById('locationButtonText');
+        const locationDisplay = document.getElementById('locationDisplay');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const forecastContainer = document.getElementById('forecastContainer');
+        const daysContainer = document.getElementById('daysContainer');
+        const hourlyContainer = document.getElementById('hourlyContainer');
+        const hourlyTitle = document.getElementById('hourlyTitle');
+        const hourlyGrid = document.getElementById('hourlyGrid');
+        const content = document.getElementById('content');
+
+        // Event listeners
+        getLocationBtn.addEventListener('click', requestLocation);
+
+        // Request location permission
+        function requestLocation() {
+            locationButtonText.textContent = "Getting location...";
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    successCallback, 
+                    errorCallback,
+                    { enableHighAccuracy: true }
+                );
+            } else {
+                showError("Geolocation is not supported by your browser");
+                locationButtonText.textContent = "Get My Location";
+            }
+        }
+
+        // Success callback for geolocation
+        function successCallback(position) {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            
+            locationButtonText.textContent = "Location Updated";
+            fetchWeatherForecast(latitude, longitude);
+        }
+
+        // Error callback for geolocation
+        function errorCallback(error) {
+            let message = "";
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message = "Location access was denied";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = "Location information is unavailable";
+                    break;
+                case error.TIMEOUT:
+                    message = "Request timed out";
+                    break;
+                case error.UNKNOWN_ERROR:
+                    message = "An unknown error occurred";
+                    break;
+            }
+            showError(message);
+            locationButtonText.textContent = "Get My Location";
+        }
+
+        // Fetch weather forecast data
+        async function fetchWeatherForecast(latitude, longitude) {
+            showLoading();
+            
+            try {
+                const response = await fetch(`https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${latitude},${longitude}&days=7&aqi=no&alerts=no`);
+                
+                if (!response.ok) {
+                    throw new Error('Weather data not available');
+                }
+                
+                const data = await response.json();
+                forecastData = data;
+                
+                // Update location display
+                currentLocation = `${data.location.name}, ${data.location.country}`;
+                locationDisplay.textContent = currentLocation;
+                
+                // Render forecast
+                renderDailyForecast(data);
+                hideLoading();
+            } catch (error) {
+                showError("Failed to fetch weather data: " + error.message);
+                hideLoading();
+            }
+        }
+
+        // Calculate bike rating score (1-100)
+        function calculateBikeRating(weather) {
+            // Base scores for different factors (all out of 100)
+            let temperatureScore = 0;
+            let precipitationScore = 0;
+            let windScore = 0;
+            let visibilityScore = 0;
+            let uvScore = 0;
+            
+            // Temperature rating (ideal: 15-25°C)
+            const temp_c = weather.temp_c;
+            if (temp_c < 0) {
+                temperatureScore = 10;
+            } else if (temp_c < 5) {
+                temperatureScore = 30;
+            } else if (temp_c < 10) {
+                temperatureScore = 50;
+            } else if (temp_c < 15) {
+                temperatureScore = 70;
+            } else if (temp_c <= 25) {
+                temperatureScore = 100;
+            } else if (temp_c <= 30) {
+                temperatureScore = 70;
+            } else if (temp_c <= 35) {
+                temperatureScore = 40;
+            } else {
+                temperatureScore = 20;
+            }
+            
+            // Precipitation rating
+            const precip_mm = weather.precip_mm || 0;
+            if (precip_mm === 0) {
+                precipitationScore = 100;
+            } else if (precip_mm < 0.5) {
+                precipitationScore = 80;
+            } else if (precip_mm < 2) {
+                precipitationScore = 50;
+            } else if (precip_mm < 5) {
+                precipitationScore = 20;
+            } else {
+                precipitationScore = 0;
+            }
+            
+            // Wind rating (lower is better)
+            const wind_kph = weather.wind_kph;
+            if (wind_kph < 5) {
+                windScore = 100;
+            } else if (wind_kph < 10) {
+                windScore = 85;
+            } else if (wind_kph < 20) {
+                windScore = 60;
+            } else if (wind_kph < 30) {
+                windScore = 40;
+            } else if (wind_kph < 40) {
+                windScore = 20;
+            } else {
+                windScore = 0;
+            }
+            
+            // Visibility rating
+            const vis_km = weather.vis_km || 10;
+            if (vis_km > 9) {
+                visibilityScore = 100;
+            } else if (vis_km > 7) {
+                visibilityScore = 80;
+            } else if (vis_km > 5) {
+                visibilityScore = 60;
+            } else if (vis_km > 3) {
+                visibilityScore = 40;
+            } else {
+                visibilityScore = 20;
+            }
+            
+            // UV rating (moderate UV is fine, high UV is not good for long rides)
+            const uv = weather.uv || 0;
+            if (uv <= 2) {
+                uvScore = 100;
+            } else if (uv <= 5) {
+                uvScore = 80;
+            } else if (uv <= 7) {
+                uvScore = 60;
+            } else if (uv <= 10) {
+                uvScore = 40;
+            } else {
+                uvScore = 20;
+            }
+            
+            // Calculate final score (weighted average)
+            const finalScore = Math.round(
+                (temperatureScore * 0.3) +
+                (precipitationScore * 0.3) +
+                (windScore * 0.2) +
+                (visibilityScore * 0.1) +
+                (uvScore * 0.1)
+            );
+            
+            return Math.max(1, Math.min(100, finalScore));
+        }
+
+        // Get rating class based on score
+        function getRatingClass(score) {
+            if (score >= 80) return 'excellent';
+            if (score >= 60) return 'good';
+            if (score >= 40) return 'moderate';
+            if (score >= 20) return 'poor';
+            return 'bad';
+        }
+
+        // Format date
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        }
+
+        // Format day of week
+        function getDayOfWeek(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { weekday: 'short' });
+        }
+
+        // Format hour
+        function formatHour(timeStr) {
+            const hour = parseInt(timeStr.split(' ')[1].split(':')[0]);
+            const suffix = hour >= 12 ? 'PM' : 'AM';
+            const displayHour = hour % 12 || 12;
+            return `${displayHour} ${suffix}`;
+        }
+
+        // Render daily forecast
+        function renderDailyForecast(data) {
+            daysContainer.innerHTML = '';
+            
+            data.forecast.forecastday.forEach((day, index) => {
+                const rating = calculateBikeRating({
+                    temp_c: day.day.avgtemp_c,
+                    precip_mm: day.day.totalprecip_mm,
+                    wind_kph: day.day.maxwind_kph,
+                    vis_km: day.day.avgvis_km,
+                    uv: day.day.uv
+                });
+                
+                const ratingClass = getRatingClass(rating);
+                const dayName = index === 0 ? 'Today' : getDayOfWeek(day.date);
+                
+                const dayCard = document.createElement('div');
+                dayCard.className = `day-card ${index === 0 ? 'active' : ''}`;
+                dayCard.setAttribute('data-date', day.date);
+                dayCard.innerHTML = `
+                    <div class="day-name">${dayName}</div>
+                    <div class="day-date">${formatDate(day.date)}</div>
+                    <img class="weather-icon" src="${day.day.condition.icon}" alt="${day.day.condition.text}">
+                    <div class="rating ${ratingClass}">${rating}</div>
+                `;
+                
+                dayCard.addEventListener('click', () => {
+                    // Update active state
+                    document.querySelectorAll('.day-card').forEach(card => {
+                        card.classList.remove('active');
+                    });
+                    dayCard.classList.add('active');
+                    
+                    // Render hourly forecast for selected day
+                    renderHourlyForecast(day);
+                });
+                
+                daysContainer.appendChild(dayCard);
+            });
+            
+            // Show the forecast container
+            forecastContainer.style.display = 'block';
+            
+            // Show hourly forecast for today by default
+            renderHourlyForecast(data.forecast.forecastday[0]);
+        }
+
+        // Render hourly forecast for selected day
+        function renderHourlyForecast(dayData) {
+            hourlyGrid.innerHTML = '';
+            hourlyTitle.textContent = `Hourly Forecast for ${formatDate(dayData.date)}`;
+            
+            // Get actual hours remaining if today, otherwise show all hours
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            
+            // Filter hours to show only future hours if it's today
+            let hoursToShow = dayData.hour;
+            if (dayData.date === today) {
+                const currentHour = now.getHours();
+                hoursToShow = dayData.hour.filter(hour => {
+                    const hourNum = parseInt(hour.time.split(' ')[1].split(':')[0]);
+                    return hourNum >= currentHour;
+                });
+            }
+
+            // If no hours remaining today, show message
+            if (hoursToShow.length === 0) {
+                const noHoursMessage = document.createElement('div');
+                noHoursMessage.className = 'error-message';
+                noHoursMessage.textContent = 'No more hours remaining today';
+                hourlyGrid.appendChild(noHoursMessage);
+            } else {
+      
